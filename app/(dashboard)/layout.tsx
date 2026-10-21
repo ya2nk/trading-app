@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -15,7 +15,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth-provider';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -37,15 +37,30 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [signOutError, setSignOutError] = useState('');
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) router.replace('/login');
+  }, [authLoading, router, user]);
 
   const signOut = async () => {
     setSignOutError('');
     const { error } = await getSupabaseBrowserClient().auth.signOut();
     if (error) setSignOutError(error.message);
   };
+
+  if (authLoading) {
+    return <main className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Memeriksa sesi...</main>;
+  }
+
+  if (authError) {
+    return <main className="flex min-h-screen items-center justify-center p-6"><p role="alert" className="max-w-lg rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{authError}</p></main>;
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">
@@ -132,10 +147,10 @@ export default function DashboardLayout({
             </button>
 
             <div className="ml-auto flex items-center gap-4">
-              {user ? <>
+              <>
                 <span className="hidden text-sm text-muted-foreground sm:block">{user.email}</span>
                 <Button variant="outline" size="sm" onClick={() => void signOut()}>Keluar</Button>
-              </> : <Link href="/login"><Button size="sm" disabled={authLoading}>Masuk</Button></Link>}
+              </>
             </div>
           </div>
         </header>

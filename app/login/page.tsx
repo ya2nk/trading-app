@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (user) router.replace('/dashboard'); }, [router, user]);
+  useEffect(() => { if (!authLoading && user) router.replace('/dashboard'); }, [authLoading, router, user]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,6 +51,10 @@ export default function LoginPage() {
     }
   };
 
+  if (authLoading || user) {
+    return <main className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Memeriksa sesi...</main>;
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
@@ -75,7 +78,6 @@ export default function LoginPage() {
               {mode === 'login' ? 'Daftar' : 'Masuk'}
             </button>
           </p>
-          <p className="mt-3 text-center text-sm"><Link className="text-muted-foreground underline" href="/dashboard">Kembali ke dashboard</Link></p>
         </CardContent>
       </Card>
     </main>
