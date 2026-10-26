@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProductVariantBuilder } from '@/components/products/ProductVariantBuilder';
+import { ProductImageUploader } from '@/components/products/ProductImageUploader';
 import { useAuth } from '@/components/auth-provider';
 import { getSupabaseBrowserClient, getSupabaseErrorMessage } from '@/lib/supabase';
 
@@ -30,6 +31,7 @@ export default function NewProductPage() {
   const [skuPrefix, setSkuPrefix] = useState('');
   const [description, setDescription] = useState('');
   const [variants, setVariants] = useState<DraftVariant[]>([]);
+  const [images, setImages] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +48,7 @@ export default function NewProductPage() {
     }
     setSaving(true);
     const supabase = getSupabaseBrowserClient();
+    const uploadedPaths: string[] = [];
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
@@ -67,6 +70,50 @@ export default function NewProductPage() {
       return;
     }
 
+    const rollbackProduct = async () => {
+      const cleanupErrors: string[] = [];
+      if (uploadedPaths.length > 0) {
+        const { error: storageError } = await supabase.storage.from('product_images').remove(uploadedPaths);
+        if (storageError) cleanupErrors.push(`Gambar gagal dibersihkan: ${storageError.message}`);
+      }
+      const { error: rollbackError } = await supabase.from('products').delete().eq('id', product.id);
+      if (rollbackError) cleanupErrors.push(`Produk utama gagal dibersihkan (${product.id}): ${rollbackError.message}`);
+      return cleanupErrors.length > 0 ? ` ${cleanupErrors.join(' ')}` : '';
+    };
+
+    const imageUrls: string[] = [];
+    for (const file of images) {
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${user.id}/${product.id}/${crypto.randomUUID()}-${safeFileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('product_images')
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) {
+        const cleanupMessage = await rollbackProduct();
+        setError(`${getSupabaseErrorMessage(uploadError)}${cleanupMessage}`);
+        setSaving(false);
+        return;
+      }
+
+      uploadedPaths.push(path);
+      imageUrls.push(supabase.storage.from('product_images').getPublicUrl(path).data.publicUrl);
+    }
+
+    if (imageUrls.length > 0) {
+      const { error: imagesError } = await supabase
+        .from('products')
+        .update({ images: imageUrls })
+        .eq('id', product.id);
+
+      if (imagesError) {
+        const cleanupMessage = await rollbackProduct();
+        setError(`${getSupabaseErrorMessage(imagesError)}${cleanupMessage}`);
+        setSaving(false);
+        return;
+      }
+    }
+
     const { error: variantsError } = await supabase.from('product_variants').insert(
       variants.map((variant) => ({
         id: variant.id,
@@ -82,11 +129,8 @@ export default function NewProductPage() {
     );
 
     if (variantsError) {
-      const { error: rollbackError } = await supabase.from('products').delete().eq('id', product.id);
-      const rollbackMessage = rollbackError
-        ? ` Produk utama sudah tersimpan (${product.id}) tetapi varian gagal dibuat dan pembersihan otomatis juga gagal: ${rollbackError.message}`
-        : '';
-      setError(`${getSupabaseErrorMessage(variantsError)}${rollbackMessage}`);
+      const cleanupMessage = await rollbackProduct();
+      setError(`${getSupabaseErrorMessage(variantsError)}${cleanupMessage}`);
       setSaving(false);
       return;
     }
@@ -105,6 +149,7 @@ export default function NewProductPage() {
           <div className="space-y-2"><Label htmlFor="category">Kategori</Label><Input id="category" required value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Contoh: Pakaian" /></div>
           <div className="space-y-2"><Label htmlFor="sku">Awalan SKU</Label><Input id="sku" required value={skuPrefix} onChange={(event) => setSkuPrefix(event.target.value.toUpperCase())} placeholder="Contoh: FLN" /></div>
           <div className="space-y-2 md:col-span-2"><Label htmlFor="description">Deskripsi</Label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Deskripsi singkat produk" /></div>
+          <ProductImageUploader files={images} onFilesChange={setImages} />
         </CardContent></Card>
         <Card><CardContent className="p-6"><ProductVariantBuilder skuPrefix={skuPrefix || undefined} onVariantsChange={setVariants} /></CardContent></Card>
         {!authLoading && !user && <p className="text-sm text-amber-700">Anda belum masuk. <Link className="underline" href="/login">Masuk atau buat akun</Link> untuk menyimpan produk.</p>}

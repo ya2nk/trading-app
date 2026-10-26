@@ -64,19 +64,15 @@ A comprehensive web-based application for managing product sales and purchases, 
 
 4. **Setup Supabase Database**
    
-   Go to your Supabase project → SQL Editor and run `database-migration.sql` if the schema has not been created yet. Do not rerun the full migration over existing tables. Then run the additive `customer-supplier-migration.sql` to create the master tables and link existing transaction history; it is safe for an existing installation.
+   Go to your Supabase project → SQL Editor and run `database-migration.sql` if the schema has not been created yet. Do not rerun the full migration over existing tables. Then run the additive `customer-supplier-migration.sql` and `order-workflow-migration.sql` once each. The order workflow migration adds supplier-ready dates, partial receiving, customer payment records, and secure database functions for recording payments and received stock.
 
 5. **Create an account**
 
    Start the app, open `/login`, and register with an email and password. If email confirmation is enabled in Supabase Auth, confirm the email before signing in. The signup trigger creates the user's profile.
 
-6. **Create Storage Bucket**
-   
-   In Supabase Dashboard:
-   - Go to Storage → New bucket
-   - Name: `product_images`
-   - Public: Yes
-   - File size limit: 10MB
+6. **Setup product image storage**
+
+   Run `product-image-storage.sql` once in the Supabase SQL Editor. It creates or configures the public `product_images` bucket (10 MB per image) and policies that allow signed-in users to upload and delete only their own product images.
 
 7. **Start development server**
    ```bash
@@ -151,6 +147,13 @@ Update RLS policies in `database-migration.sql` based on your requirements:
 - View own data only
 - Allow public view of active products
 - Admin override capabilities
+
+### Purchase Orders and Customer Payments
+
+- Create a supplier PO with an estimated date when the goods will be ready at the supplier. Confirm readiness when the supplier confirms it; record actual received quantities when the goods arrive at the store. Stock increases only for quantities recorded as received.
+- A customer order can be created even when current stock is insufficient. Link supplier POs to the order, receive the goods, and then complete the customer order to reduce stock.
+- Record an optional down payment when creating a customer order, then record each installment from the order detail page. The remaining balance is calculated from payment records and cannot be overpaid.
+- Apply `order-workflow-migration.sql` before using these screens on an existing database.
 
 ### Environment Variables
 

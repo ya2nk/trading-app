@@ -37,10 +37,23 @@ export interface Sale {
   payment_method?: 'cash' | 'transfer' | 'card' | 'online';
   notes?: string;
   sale_date?: string;
+  customer_ready_date?: string;
   created_by?: string;
   created_at?: string;
   updated_at?: string;
   items?: SaleItem[];
+  payments?: SalePayment[];
+}
+
+export interface SalePayment {
+  id: string;
+  sale_id: string;
+  amount: number;
+  payment_method: 'cash' | 'transfer' | 'card' | 'online';
+  reference?: string;
+  received_by?: string;
+  payment_date: string;
+  created_at?: string;
 }
 
 export interface SaleItem {
@@ -63,9 +76,12 @@ export interface Purchase {
   supplier_contact?: string;
   supplier_address?: string;
   total_amount: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'pending' | 'ready' | 'partially_received' | 'completed' | 'cancelled';
   notes?: string;
   purchase_date?: string;
+  ready_date_estimate?: string;
+  ready_date_confirmed?: string;
+  linked_sale_id?: string;
   created_by?: string;
   created_at?: string;
   updated_at?: string;
@@ -80,6 +96,7 @@ export interface PurchaseItem {
   variant_name: string;
   sku: string;
   quantity: number;
+  quantity_received?: number;
   unit_price: number;
   subtotal: number;
   created_at?: string;

@@ -41,17 +41,15 @@ Tunggu hingga semua tabel berhasil dibuat! ✅
 
 > **Jika database sudah pernah dibuat:** jangan jalankan ulang `database-migration.sql`. Jalankan file tambahan `customer-supplier-migration.sql` satu kali di SQL Editor untuk menambahkan tabel master Customer/Supplier dan menghubungkan riwayat transaksi lama.
 
-### 1.3 Create Storage Bucket
+### 1.3 Setup Storage Gambar Produk
 
-Untuk gambar produk:
+Jalankan file `product-image-storage.sql` satu kali di **SQL Editor**. File ini membuat atau mengonfigurasi bucket publik `product_images` (maksimal 10 MB per gambar), mengizinkan gambar dilihat publik, dan membatasi upload serta penghapusan ke gambar milik pengguna yang sedang masuk.
 
-1. Go to **Storage** → **New bucket**
-2. Name: `product_images`
-3. Public: **Yes**
-4. File size limit: `10485760` (10MB)
-5. Click **"Create bucket"**
+### 1.4 PO Supplier dan Pembayaran Customer
 
-### 1.4 Configure RLS Policies
+Pada halaman **SQL Editor**, jalankan `order-workflow-migration.sql` satu kali. Setelah migrasi, buat PO dengan estimasi tanggal barang ready di supplier, konfirmasi saat supplier menyatakan barang siap, dan catat jumlah yang diterima saat barang tiba. Stok hanya bertambah saat penerimaan dicatat. DP dan cicilan customer dicatat dari detail pesanan; sisa tagihan dihitung otomatis.
+
+### 1.5 Configure RLS Policies
 
 SQL migration sudah include RLS policies. Verify bahwa policies aktif di menu **Database** → **Replication** atau cek via SQL:
 
@@ -65,7 +63,7 @@ order by tablename;
 
 Semua harus `true`.
 
-### 1.5 Get Your Credentials
+### 1.6 Get Your Credentials
 
 Copy credentials ini untuk Vercel environment variables:
 
@@ -276,8 +274,8 @@ Update code → Commit → Auto-deploy to Vercel!
 ### Issue: "Image upload fails"
 
 **Solution**:
-- Verify storage bucket `product_images` exists
-- Check bucket policies allow uploads
+- Verify storage bucket `product_images` exists and is public
+- Verify `product-image-storage.sql` policies allow authenticated uploads
 
 ### Issue: "Build fails"
 

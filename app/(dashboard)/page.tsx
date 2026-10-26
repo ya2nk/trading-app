@@ -34,12 +34,13 @@ export default function DashboardPage() {
     const since = new Date();
     since.setDate(since.getDate() - 6);
     since.setHours(0, 0, 0, 0);
-    const [salesResult, productsResult, stockResult] = await Promise.all([
+    const [salesResult, paymentsResult, productsResult, stockResult] = await Promise.all([
       supabase.from('sales').select('id, customer_name, total_amount, status, sale_date, sale_items(quantity)').gte('sale_date', since.toISOString()).order('sale_date', { ascending: false }),
+      supabase.from('sale_payments').select('amount, payment_date').gte('payment_date', since.toISOString()),
       supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('product_variants').select('id, stock').lt('stock', 10).eq('is_active', true),
     ]);
-    const errors = [salesResult.error, productsResult.error, stockResult.error].filter(Boolean);
+    const errors = [salesResult.error, paymentsResult.error, productsResult.error, stockResult.error].filter(Boolean);
     if (errors.length) setError(getSupabaseErrorMessage(errors[0]!));
     if (salesResult.data) setSales(salesResult.data as DashboardSale[]);
     if (!productsResult.error) setProductCount(productsResult.count ?? 0);
@@ -50,10 +51,9 @@ export default function DashboardPage() {
       date.setDate(since.getDate() + index);
       return { key: date.toISOString().slice(0, 10), day: new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(date), revenue: 0 };
     });
-    for (const sale of salesResult.data ?? []) {
-      if (!['completed', 'paid'].includes(sale.status)) continue;
-      const day = days.find((item) => item.key === sale.sale_date.slice(0, 10));
-      if (day) day.revenue += Number(sale.total_amount);
+    for (const payment of paymentsResult.data ?? []) {
+      const day = days.find((item) => item.key === payment.payment_date.slice(0, 10));
+      if (day) day.revenue += Number(payment.amount);
     }
     setRevenueDays(days);
     setLoading(false);
@@ -61,14 +61,14 @@ export default function DashboardPage() {
   useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
   const completedSales = sales.filter((sale) => ['completed', 'paid'].includes(sale.status));
-  const revenue = completedSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+  const revenue = revenueDays.reduce((sum, day) => sum + day.revenue, 0);
   const maxRevenue = Math.max(1, ...revenueDays.map((day) => day.revenue));
 
   return <div className="space-y-8">
     <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-4xl font-bold">Dashboard</h1><p className="mt-1 text-muted-foreground">Ringkasan 7 hari terakhir dari Supabase.</p></div><div className="flex gap-3"><Button variant="outline" className="gap-2"><Calendar className="h-4 w-4" />7 hari</Button><Link href="/sales/new"><Button className="gap-2"><ShoppingBag className="h-4 w-4" />Penjualan Baru</Button></Link></div></div>
     {error && <div role="alert" className="flex items-center justify-between rounded-lg border border-destructive/30 p-4 text-sm text-destructive"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void loadDashboard()}>Coba lagi</Button></div>}
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <MetricCard title="Pendapatan" value={formatCurrency(revenue)} caption="Transaksi paid/completed" icon={<DollarSign className="h-5 w-5" />} />
+      <MetricCard title="Pembayaran Diterima" value={formatCurrency(revenue)} caption="7 hari terakhir" icon={<DollarSign className="h-5 w-5" />} />
       <MetricCard title="Transaksi" value={completedSales.length.toString()} caption="7 hari terakhir" icon={<ShoppingBag className="h-5 w-5" />} />
       <MetricCard title="Produk Aktif" value={productCount.toString()} caption="Dari katalog" icon={<Package className="h-5 w-5" />} />
       <MetricCard title="Stok Menipis" value={lowStockCount.toString()} caption="Stok kurang dari 10" icon={<AlertCircle className="h-5 w-5" />} />

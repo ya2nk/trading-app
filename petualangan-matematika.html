@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petualangan Matematika di Hutan 🦊</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 30px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #27ae60;
+            color: white;
+            padding: 20px;
+            font-size: 1.2em;
+        }
+
+        .game-area {
+            padding: 40px;
+            min-height: 400px;
+        }
+
+        .scene {
+            text-align: center;
+        }
+
+        .animal-character {
+            font-size: 5em;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .dialog-box {
+            background: #f8f9fa;
+            border-left: 5px solid #3498db;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: left;
+            border-radius: 10px;
+        }
+
+        .question-box {
+            background: #fff3cd;
+            border: 3px solid #ffc107;
+            padding: 30px;
+            margin: 30px auto;
+            max-width: 600px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 1.3em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        .option-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            animation: pulse 0.5s ease;
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .feedback {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 40px;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #11998e, #38ef7d);
+            transition: width 0.5s ease;
+        }
+
+        .next-btn, .home-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-family: inherit;
+            display: none;
+        }
+
+        .level-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 30px;
+        }
+
+        .level-btn {
+            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+            color: white;
+            border: none;
+            padding: 25px;
+            font-size: 1.1em;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-family: inherit;
+        }
+
+        .level-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+
+        .level-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .level-btn.completed {
+            background: linear-gradient(135deg, #ffb347 0%, #ffcc33 100%);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦊 Petualangan Matematika di Hutan 🔍</h1>
+            <p>Bantulah hewan-hewan hutan dengan menjawab soal matematika!</p>
+        </div>
+
+        <div class="stats">
+            <span>⭐ Skor: <strong id="score">0</strong></span>
+            <span>❤️ nyawa: <strong id="lives">3</strong></span>
+            <span>🏆 Tingkat: <strong id="current-level">1</strong></span>
+        </div>
+
+        <!-- Level Selection Screen -->
+        <div id="level-selection" class="game-area">
+            <h2 style="text-align: center; margin-bottom: 20px;">Pilih Tingkat</h2>
+            <div class="level-selector">
+                <button class="level-btn completed" onclick="startLevel(1)">
+                    <div style="font-size: 3em;">🐰</div>
+                    Tingkat 1<br>Penjumlahan & Pengurangan
+                </button>
+                <button class="level-btn completed" onclick="startLevel(2)">
+                    <div style="font-size: 3em;">🐿️</div>
+                    Tingkat 2<br>Perkalian Dasar
+                </button>
+                <button class="level-btn completed" onclick="startLevel(3)">
+                    <div style="font-size: 3em;">🦔</div>
+                    Tingkat 3<br>Perkalian Lanjutan (6-9)
+                </button>
+                <button class="level-btn completed" onclick="startLevel(4)">
+                    <div style="font-size: 3em;">🦉</div>
+                    Tingkat 4<br>Pembagian
+                </button>
+                <button class="level-btn completed" onclick="startLevel(5)">
+                    <div style="font-size: 3em;">🐻</div>
+                    Tingkat 5<br>Campur Operasi
+                </button>
+                <button class="level-btn" onclick="startLevel(6)">
+                    <div style="font-size: 3em;">👑</div>
+                    Tingkat 6<br>Tantangan Utama
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Scene -->
+        <div id="game-scene" class="game-area hidden">
+            <div class="scene">
+                <div class="animal-character" id="animal">🐰</div>
+                
+                <div class="dialog-box">
+                    <h3 id="animal-name">Kelinci</h3>
+                    <p id="animal-dialog">Halo! Selamat datang. Mohon bantulah saya menyelesaikan soal-soal ini!</p>
+                </div>
+
+                <div class="question-box" id="question-container">
+                    <p style="font-size: 1.4em;" id="question"></p>
+                </div>
+
+                <div class="options-grid" id="options"></div>
+
+                <div class="feedback" id="feedback"></div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress" style="width: 0%"></div>
+                </div>
+
+                <button class="next-btn" id="next-btn" onclick="lanjutPertanyaan()">Lanjut Ke Pertanyaan Berikutnya ➡️</button>
+                <button class="home-btn" id="home-btn" onclick="kembaliMenuUtama()">🏠 Kembali ke Menu Utama</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let skor = 0;
+        let nyawa = 3;
+        let tingkatSaatIni = 1;
+        let indeksPertanyaanSaatIni = 0;
+        let jawabanBenar = null;
+
+        const animals = [
+            { icon: '🐰', name: 'Kelinci' },
+            { icon: '🐿️', name: 'Tupai' },
+            { icon: '🦔', name: 'Landak' },
+            { icon: '🦉', name: 'Burung Hantu' },
+            { icon: '🐻', name: 'Beruang' },
+            { icon: '👑', name: 'Raja Singa' }
+        ];
+
+        const questions = {
+            1: [
+                { q: "Ada 5 apel, ditambah 3 lagi. Berapa jumlahnya?", options: ["6", "7", "8", "9"], answer: 2 },
+                { q: "12 dikurangi 7 sama dengan berapa?", options: ["4", "5", "6", "3"], answer: 1 },
+                { q: "8 ditambah 8 sama dengan?", options: ["14", "15", "16", "17"], answer: 2 },
+                { q: "Indah memiliki 15 pohon bunga. 5 di antaranya layu. Berapa yang masih sehat?", options: ["8", "10", "12", "9"], answer: 1 },
+                { q: "Andi membeli 6 permen. Kemudian adiknya mengambil 2. Berapa sisa permen Andi?", options: ["4", "5", "6", "3"], answer: 0 }
+            ],
+            2: [
+                { q: "Ada 4 sarang burung. Setiap sarang berisi 3 telur. Berapa jumlah telur seluruhnya?", options: ["7", "12", "9", "15"], answer: 1 },
+                { q: "Ada 3 kelinci. Setiap kelinci memiliki 4 wortel. Berapa jumlah wortel seluruhnya?", options: ["7", "12", "9", "10"], answer: 1 },
+                { q: "Terdapat 5 kotak yang masing-masing berisi 2 lebah. Berapa jumlah lebah seluruhnya?", options: ["7", "10", "8", "12"], answer: 1 },
+                { q: "Ali mempunyai 6 kotak pensil. Setiap kotak berisi 2 pensil. Berapa jumlah pensil seluruhnya?", options: ["8", "10", "12", "14"], answer: 2 },
+                { q: "Perkalian: 7 dikali 3 sama dengan?", options: ["20", "21", "18", "24"], answer: 1 }
+            ],
+            3: [
+                { q: "6 dikali 4 sama dengan?", options: ["22", "24", "26", "28"], answer: 1 },
+                { q: "8 dikali 5 sama dengan?", options: ["35", "40", "45", "50"], answer: 1 },
+                { q: "9 dikali 6 sama dengan?", options: ["54", "48", "56", "62"], answer: 0 },
+                { q: "7 dikali 8 sama dengan?", options: ["54", "56", "64", "48"], answer: 1 },
+                { q: "Terdapat 9 meja. Setiap meja mempunyai 4 kaki. Berapa jumlah kaki seluruhnya?", options: ["28", "32", "36", "40"], answer: 2 }
+            ],
+            4: [
+                { q: "12 dibagi 3 sama dengan?", options: ["2", "3", "4", "5"], answer: 2 },
+                { q: "20 ekor burung dibagikan ke dalam 4 sarang secara merata. Berapa burung di setiap sarang?", options: ["3", "4", "5", "6"], answer: 2 },
+                { q: "18 dibagi 6 sama dengan?", options: ["2", "3", "4", "5"], answer: 1 },
+                { q: "24 cokelat dibagi kepada 8 teman secara merata. Berapa cokelat yang diterima masing-masing?", options: ["2", "3", "4", "5"], answer: 1 },
+                { q: "42 dibagi 7 sama dengan?", options: ["5", "6", "7", "8"], answer: 2 }
+            ],
+            5: [
+                { q: "5 dikali 3 ditambah 4 sama dengan?", options: ["17", "19", "21", "15"], answer: 1 },
+                { q: "20 dikurangi 3 dikali 4 sama dengan?", options: ["68", "8", "12", "16"], answer: 1 },
+                { q: "(8 ditambah 4) dibagi 2 sama dengan?", options: ["5", "6", "7", "8"], answer: 1 },
+                { q: "Beli 3 buku masing-masing harga Rp 1.000, kemudian membayar Rp 5.000. Berapa kembalian?", options: ["Rp 2.000", "Rp 2.500", "Rp 3.000", "Rp 1.500"], answer: 0 },
+                { q: "7 ditambah 7 dikali 7 dikurangi 3 sama dengan?", options: ["50", "53", "56", "49"], answer: 1 }
+            ],
+            6: [
+                { q: "Pak Cik memiliki 5 pohon apel. Setiap pohon menghasilkan 8 kg. Jika dijual dengan harga Rp 2.000/kg, berapa jumlah uangnya?", options: ["Rp 80.000", "Rp 800.000", "Rp 800", "Rp 8.000"], answer: 0 },
+                { q: "Ada 15 kotak kado. Setiap kotak berisi 4 permen. Kemudian dibagikan kepada 10 anak secara merata. Berapa permen yang diterima masing-masing anak?", options: ["4", "5", "6", "8"], answer: 2 },
+                { q: "7 jam dikalikan 60 menit ditambah 25 menit sama dengan?", options: ["445", "425", "420", "400"], answer: 1 },
+                { q: "200 dikurangi (8 dikali 10 ditambah 5) sama dengan?", options: ["105", "115", "125", "135"], answer: 1 },
+                { q: "Tantangan Akhir: Hitung cepat 6 dikali 7 ditambah 8 dikali 9 dibagi 3 sama dengan?", options: ["42", "50", "48", "52"], answer: 1 }
+            ]
+        };
+
+        function startLevel(tingkat) {
+            tingkatSaatIni = tingkat;
+            indeksPertanyaanSaatIni = 0;
+            document.getElementById('level-selection').classList.add('hidden');
+            document.getElementById('game-scene').classList.remove('hidden');
+            
+            const hewan = animals[tingkat - 1];
+            document.getElementById('animal').textContent = hewan.icon;
+            document.getElementById('animal-name').textContent = hewan.name;
+            document.getElementById('current-level').textContent = tingkat;
+            
+            loadPertanyaan();
+        }
+
+        function loadPertanyaan() {
+            const soalTingkat = questions[tingkatSaatIni];
+            const soal = soalTingkat[indeksPertanyaanSaatIni];
+            
+            document.getElementById('question').textContent = soal.q;
+            
+            const opsiDiv = document.getElementById('options');
+            opsiDiv.innerHTML = '';
+            
+            soal.options.forEach((opsi, index) => {
+                const tombol = document.createElement('button');
+                tombol.className = 'option-btn';
+                tombol.textContent = opsi;
+                tombol.onclick = () => periksaJawaban(index, tombol);
+                opsiDiv.appendChild(tombol);
+            });
+            
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('next-btn').style.display = 'none';
+            
+            const progres = ((indeksPertanyaanSaatIni) / soalTingkat.length) * 100;
+            document.getElementById('progress').style.width = progres + '%';
+        }
+
+        function periksaJawaban(pilihan, tombol) {
+            const soalTingkat = questions[tingkatSaatIni];
+            const soal = soalTingkat[indeksPertanyaanSaatIni];
+            
+            if (pilihan === soal.answer) {
+                tombol.classList.add('correct');
+                skor += 100;
+                document.getElementById('feedback').innerHTML = '✅ Jawaban Benar. Pekerjaan Baik! 🎉';
+                createEfekConfetti();
+            } else {
+                tombol.classList.add('wrong');
+                nyawa--;
+                document.getElementById('feedback').innerHTML = '❌ Salah. Silakan coba lagi! 💪';
+                
+                if (nyawa <= 0) {
+                    setTimeout(() => {
+                        alert('Permainan Berakhir. Skor Anda: ' + skor);
+                        kembaliMenuUtama();
+                    }, 500);
+                }
+            }
+            
+            document.getElementById('score').textContent = skor;
+            document.getElementById('lives').textContent = nyawa;
+            
+            setTimeout(() => {
+                const tombolLanjut = document.getElementById('next-btn');
+                tombolLanjut.style.display = 'inline-block';
+            }, 1000);
+        }
+
+        function lanjutPertanyaan() {
+            const soalTingkat = questions[tingkatSaatIni];
+            indeksPertanyaanSaatIni++;
+            
+            if (indeksPertanyaanSaatIni >= soalTingkat.length) {
+                document.getElementById('feedback').innerHTML = '🎊 Anda Menyelesaikan Tingkat Ini. Sangat Baik! 🎊';
+                document.getElementById('next-btn').style.display = 'none';
+                document.getElementById('home-btn').style.display = 'inline-block';
+            } else {
+                loadPertanyaan();
+            }
+        }
+
+        function kembaliMenuUtama() {
+            document.getElementById('game-scene').classList.add('hidden');
+            document.getElementById('level-selection').classList.remove('hidden');
+        }
+
+        function createEfekConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+    </script>
+</body>
+</html>

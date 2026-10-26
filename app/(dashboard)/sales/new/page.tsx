@@ -44,6 +44,8 @@ export default function NewSalePage() {
   const [customerId, setCustomerId] = useState('');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'online'>('cash');
+  const [customerReadyDate, setCustomerReadyDate] = useState('');
+  const [initialPayment, setInitialPayment] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -80,15 +82,7 @@ export default function NewSalePage() {
     setError('');
     const existing = cart.find((item) => item.variantId === variant.id);
     if (existing) {
-      if (existing.quantity >= variant.stock) {
-        setError(`Stok ${variant.name} tidak mencukupi.`);
-        return;
-      }
       setCart(cart.map((item) => item.variantId === variant.id ? { ...item, quantity: item.quantity + 1 } : item));
-      return;
-    }
-    if (variant.stock < 1) {
-      setError(`Stok ${variant.name} sedang habis.`);
       return;
     }
     setCart([...cart, {
@@ -109,7 +103,7 @@ export default function NewSalePage() {
       setCart((current) => current.filter((item) => item.variantId !== variantId));
       return;
     }
-    setCart((current) => current.map((item) => item.variantId === variantId ? { ...item, quantity: Math.min(quantity, item.stock) } : item));
+    setCart((current) => current.map((item) => item.variantId === variantId ? { ...item, quantity } : item));
   };
 
   const submitSale = async () => {
@@ -121,6 +115,10 @@ export default function NewSalePage() {
       setError('Isi nama pelanggan dan tambahkan setidaknya satu varian ke keranjang.');
       return;
     }
+    if (initialPayment < 0 || initialPayment > subtotal) {
+      setError('Jumlah DP tidak boleh kurang dari nol atau melebihi total pesanan.');
+      return;
+    }
     setSaving(true);
     setError('');
     const supabase = getSupabaseBrowserClient();
@@ -129,7 +127,7 @@ export default function NewSalePage() {
       customer_name: customerName.trim(),
       customer_email: customerEmail.trim() || null,
       total_amount: subtotal,
-      payment_method: paymentMethod,
+      customer_ready_date: customerReadyDate || null,
       status: 'pending',
       created_by: user.id,
     }).select('id').single();
@@ -157,24 +155,31 @@ export default function NewSalePage() {
       return;
     }
 
-    const { error: completeError } = await supabase.from('sales').update({ status: 'completed' }).eq('id', sale.id);
-    if (completeError) {
-      setError(`Item transaksi tersimpan, tetapi transaksi ${sale.id} belum selesai sehingga stok belum diperbarui: ${getSupabaseErrorMessage(completeError)}`);
-      setSaving(false);
-      return;
+    if (initialPayment > 0) {
+      const { error: paymentError } = await supabase.rpc('record_sale_payment', {
+        p_sale_id: sale.id,
+        p_amount: initialPayment,
+        p_payment_method: paymentMethod,
+        p_reference: null,
+      });
+      if (paymentError) {
+        setError(`Pesanan ${sale.id} tersimpan, tetapi DP gagal dicatat: ${getSupabaseErrorMessage(paymentError)}`);
+        setSaving(false);
+        return;
+      }
     }
-    router.push('/sales');
+    router.push(`/sales/${sale.id}`);
     router.refresh();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4"><Link href="/sales"><Button variant="outline" size="icon" aria-label="Kembali ke penjualan"><ArrowLeft className="h-4 w-4" /></Button></Link><div><h1 className="text-3xl font-bold">Penjualan Baru</h1><p className="mt-1 text-muted-foreground">Simpan transaksi dan kurangi stok melalui trigger Supabase.</p></div></div>
-      <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><Info className="h-5 w-5 shrink-0" /><p>Transaksi selesai akan mengurangi stok varian. Pastikan stok produk sudah tersedia.</p></div>
+      <div className="flex items-center gap-4"><Link href="/sales"><Button variant="outline" size="icon" aria-label="Kembali ke pesanan"><ArrowLeft className="h-4 w-4" /></Button></Link><div><h1 className="text-3xl font-bold">Pesanan Customer Baru</h1><p className="mt-1 text-muted-foreground">Catat pesanan, target siap, dan DP awal.</p></div></div>
+      <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><Info className="h-5 w-5 shrink-0" /><p>Pesanan dapat menunggu pengadaan jika stok kurang. Stok baru berkurang saat pesanan diselesaikan; pembayaran DP dan cicilan dicatat terpisah.</p></div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card><CardContent className="p-6"><h2 className="mb-4 text-xl font-semibold">Pilih Produk & Varian</h2><div className="relative mb-4"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-10" placeholder="Cari produk..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></div>
           <div className="max-h-[520px] space-y-3 overflow-y-auto">{loading && <p className="py-6 text-center text-muted-foreground">Memuat produk...</p>}{!loading && filteredProducts.map((product) => <div key={product.id}><button type="button" onClick={() => setSelectedProductId(selectedProductId === product.id ? '' : product.id)} className={`w-full rounded-lg border p-4 text-left ${selectedProductId === product.id ? 'border-primary bg-primary/5' : 'hover:bg-accent/50'}`}><span className="flex justify-between gap-2"><span><span className="block font-semibold">{product.name}</span><span className="text-sm text-muted-foreground">{product.category}</span></span><span className="font-medium text-primary">{formatCurrency(product.base_price ?? 0)}</span></span></button>
-            {selectedProductId === product.id && <div className="ml-4 mt-2 space-y-2">{product.product_variants?.filter((variant) => variant.is_active).map((variant) => <button type="button" key={variant.id} onClick={() => addToCart(product, variant)} disabled={variant.stock < 1} className="flex w-full items-center justify-between rounded-lg border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50"><span><span className="block font-medium">{variant.name}</span><span className="text-xs text-muted-foreground">SKU {variant.sku} · Stok {variant.stock}</span></span><span className="font-semibold text-primary">{formatCurrency(Number(variant.price))}</span></button>)}</div>}
+            {selectedProductId === product.id && <div className="ml-4 mt-2 space-y-2">{product.product_variants?.filter((variant) => variant.is_active).map((variant) => <button type="button" key={variant.id} onClick={() => addToCart(product, variant)} className="flex w-full items-center justify-between rounded-lg border p-3 text-left"><span><span className="block font-medium">{variant.name}</span><span className="text-xs text-muted-foreground">SKU {variant.sku} · Stok tersedia {variant.stock}</span></span><span className="font-semibold text-primary">{formatCurrency(Number(variant.price))}</span></button>)}</div>}
           </div>)}
           {!loading && filteredProducts.length === 0 && <p className="py-6 text-center text-muted-foreground">Tidak ada produk aktif yang cocok.</p>}
         </div></CardContent></Card>
@@ -182,9 +187,11 @@ export default function NewSalePage() {
           <div className="mb-4 space-y-2"><label htmlFor="customer-select" className="text-sm font-medium">Pilih customer terdaftar (opsional)</label><select id="customer-select" value={customerId} onChange={(event) => { const customer = customers.find((item) => item.id === event.target.value); setCustomerId(customer?.id ?? ''); if (customer) { setCustomerName(customer.name); setCustomerEmail(customer.email ?? ''); } }} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Customer baru / tanpa master</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select><p className="text-xs text-muted-foreground">Kelola daftar di menu Customers.</p></div>
           <div className="mb-4 space-y-2"><label htmlFor="customer-name" className="text-sm font-medium">Nama pelanggan</label><Input id="customer-name" required value={customerName} onChange={(event) => { setCustomerId(''); setCustomerName(event.target.value); }} /></div>
           <div className="mb-4 space-y-2"><label htmlFor="customer-email" className="text-sm font-medium">Email pelanggan (opsional)</label><Input id="customer-email" type="email" value={customerEmail} onChange={(event) => { setCustomerId(''); setCustomerEmail(event.target.value); }} /></div>
+          <div className="mb-4 space-y-2"><label htmlFor="customer-ready-date" className="text-sm font-medium">Tanggal janji siap untuk customer (opsional)</label><Input id="customer-ready-date" type="date" value={customerReadyDate} onChange={(event) => setCustomerReadyDate(event.target.value)} /></div>
           <div className="mb-5 space-y-2"><label htmlFor="payment-method" className="text-sm font-medium">Metode pembayaran</label><select id="payment-method" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as typeof paymentMethod)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="card">Kartu</option><option value="online">Online</option></select></div>
-          <div className="mb-5 max-h-[320px] space-y-3 overflow-y-auto">{cart.length === 0 ? <div className="py-8 text-center text-muted-foreground"><ShoppingCart className="mx-auto mb-3 h-10 w-10" />Belum ada item.</div> : cart.map((item) => <div key={item.variantId} className="space-y-3 rounded-lg border p-4"><div className="flex justify-between gap-2"><div><p className="font-semibold">{item.productName}</p><p className="text-sm text-muted-foreground">{item.variantName} · {item.sku}</p></div><p className="font-bold">{formatCurrency(item.unitPrice * item.quantity)}</p></div><div className="flex items-center justify-between"><div className="flex items-center gap-3"><Button type="button" variant="outline" size="sm" onClick={() => updateQuantity(item.variantId, item.quantity - 1)}>-</Button><span>{item.quantity}</span><Button type="button" variant="outline" size="sm" disabled={item.quantity >= item.stock} onClick={() => updateQuantity(item.variantId, item.quantity + 1)}>+</Button><span className="text-xs text-muted-foreground">maks {item.stock}</span></div><Button type="button" variant="ghost" size="sm" aria-label={`Hapus ${item.variantName}`} onClick={() => updateQuantity(item.variantId, 0)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>)}</div>
-          <div className="space-y-3 border-t pt-4"><div className="flex justify-between font-bold"><span>Total</span><span className="text-primary">{formatCurrency(subtotal)}</span></div><Button className="w-full" size="lg" disabled={saving || loading || !user} onClick={() => void submitSale()}>{saving ? 'Menyimpan transaksi...' : 'Selesaikan Penjualan'}</Button></div>
+          <div className="mb-5 max-h-[320px] space-y-3 overflow-y-auto">{cart.length === 0 ? <div className="py-8 text-center text-muted-foreground"><ShoppingCart className="mx-auto mb-3 h-10 w-10" />Belum ada item.</div> : cart.map((item) => <div key={item.variantId} className="space-y-3 rounded-lg border p-4"><div className="flex justify-between gap-2"><div><p className="font-semibold">{item.productName}</p><p className="text-sm text-muted-foreground">{item.variantName} · {item.sku}</p></div><p className="font-bold">{formatCurrency(item.unitPrice * item.quantity)}</p></div><div className="flex items-center justify-between"><div className="flex items-center gap-3"><Button type="button" variant="outline" size="sm" onClick={() => updateQuantity(item.variantId, item.quantity - 1)}>-</Button><span>{item.quantity}</span><Button type="button" variant="outline" size="sm" onClick={() => updateQuantity(item.variantId, item.quantity + 1)}>+</Button><span className={`text-xs ${item.quantity > item.stock ? 'text-amber-700' : 'text-muted-foreground'}`}>{item.quantity > item.stock ? `perlu PO ${item.quantity - item.stock}` : `stok ${item.stock}`}</span></div><Button type="button" variant="ghost" size="sm" aria-label={`Hapus ${item.variantName}`} onClick={() => updateQuantity(item.variantId, 0)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>)}</div>
+          <div className="mb-5 space-y-2"><label htmlFor="initial-payment" className="text-sm font-medium">DP / pembayaran awal (opsional)</label><Input id="initial-payment" type="number" min="0" max={subtotal} value={initialPayment} onChange={(event) => setInitialPayment(Math.max(0, Number(event.target.value)))} /><p className="text-xs text-muted-foreground">Sisa tagihan: {formatCurrency(Math.max(0, subtotal - initialPayment))}. Cicilan berikutnya dicatat dari detail pesanan.</p></div>
+          <div className="space-y-3 border-t pt-4"><div className="flex justify-between font-bold"><span>Total</span><span className="text-primary">{formatCurrency(subtotal)}</span></div><Button className="w-full" size="lg" disabled={saving || loading || !user} onClick={() => void submitSale()}>{saving ? 'Menyimpan pesanan...' : 'Buat Pesanan'}</Button></div>
           {!user && <p className="mt-3 text-sm text-amber-700">Masuk dengan akun Supabase untuk membuat transaksi. <Link className="underline" href="/login">Masuk</Link></p>}
           {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
         </CardContent></Card>

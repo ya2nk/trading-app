@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AlertCircle, Grid, List, Package, Plus, Search, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,11 @@ export default function ProductsPage() {
             const variantCount = product.product_variants?.length ?? 0;
             const stockCount = product.product_variants?.reduce((sum, variant) => sum + variant.stock, 0) ?? 0;
             return <Card key={product.id} className="overflow-hidden">
-              <div className="flex h-36 items-center justify-center bg-primary/5"><Package className="h-16 w-16 text-primary/40" /></div>
+              <div className="flex h-36 items-center justify-center bg-primary/5">
+                {product.images?.[0]
+                  ? <Image src={product.images[0]} alt={product.name} width={640} height={360} unoptimized className="h-full w-full object-cover" />
+                  : <Package className="h-16 w-16 text-primary/40" />}
+              </div>
               <CardContent className="space-y-3 p-5">
                 <div className="flex items-start justify-between gap-2"><h2 className="text-lg font-semibold">{product.name}</h2><Badge variant={product.is_active ? 'secondary' : 'outline'}>{product.is_active ? 'Aktif' : 'Nonaktif'}</Badge></div>
                 <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">{product.description || 'Tidak ada deskripsi.'}</p>
