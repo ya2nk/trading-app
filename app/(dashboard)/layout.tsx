@@ -12,6 +12,7 @@ import {
   Settings,
   UsersRound,
   Building2,
+  Wallet,
   Menu,
   X
 } from 'lucide-react';
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Suppliers', href: '/suppliers', icon: Building2 },
   { name: 'Sales', href: '/sales', icon: ShoppingBag },
   { name: 'Purchases', href: '/purchases', icon: Truck },
+  { name: 'Finance', href: '/finance', icon: Wallet },
   { name: 'Inventory', href: '/inventory', icon: Warehouse },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
 ];

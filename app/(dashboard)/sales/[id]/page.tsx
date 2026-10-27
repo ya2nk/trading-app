@@ -131,7 +131,7 @@ export default function SaleDetailPage() {
     });
     if (paymentError) setError(getSupabaseErrorMessage(paymentError));
     else {
-      setNotice('Pembayaran berhasil dicatat.');
+      setNotice('Pembayaran berhasil dicatat dan otomatis masuk ke Keuangan sebagai pemasukan.');
       setPaymentAmount('');
       setPaymentReference('');
     }

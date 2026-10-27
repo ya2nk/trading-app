@@ -128,3 +128,16 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface FinanceTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  category: string;
+  description: string;
+  amount: number;
+  payment_method: 'cash' | 'transfer' | 'card' | 'online';
+  transaction_date: string;
+  sale_payment_id?: string;
+  created_by?: string;
+  created_at?: string;
+}

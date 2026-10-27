@@ -155,6 +155,13 @@ Update RLS policies in `database-migration.sql` based on your requirements:
 - Record an optional down payment when creating a customer order, then record each installment from the order detail page. The remaining balance is calculated from payment records and cannot be overpaid.
 - Apply `order-workflow-migration.sql` before using these screens on an existing database.
 
+### Finance (Pemasukan & Pengeluaran)
+
+- Menu **Finance** mencatat pemasukan dan pengeluaran manual, misalnya pembelian ATK, gaji, sewa, atau utilitas.
+- Setiap DP/cicilan customer yang dicatat di detail pesanan otomatis masuk sebagai pemasukan (kategori "Penjualan / Cicilan") lewat trigger database, termasuk pembayaran lama yang sudah ada sebelum migrasi.
+- Entri otomatis bertanda "Otomatis · cicilan" dan tidak bisa dihapus dari halaman Keuangan.
+- Apply `finance-migration.sql` once in the Supabase SQL Editor (after `order-workflow-migration.sql`) before using the Finance page.
+
 ### Environment Variables
 
 | Variable | Description | Required |
